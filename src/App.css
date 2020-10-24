@@ -1,0 +1,29 @@
+
+/*Face Style*/
+
+#main {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+
+}
+
+canvas{
+  position: absolute;
+  border:1px solid red;
+
+}
+
+#video{
+  border:1px solid red;
+}
+
+#instr-panel{
+  border:1px solid blue;
+}
+
+#images{
+  border:1px solid green;
+}
+
+/*Face Style*/
