@@ -1,6 +1,8 @@
 {
-    "hw200":true,
-    "aligned":true,
-    "insideBox":true,
-    "brightness":true
+    "server_url":"Abc",
+    "server_method":"POST",
+    "api_key":"Abcd",
+    "app_name":"",
+    "organization":"",
+    "project":""
 }

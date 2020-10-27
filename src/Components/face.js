@@ -5,18 +5,16 @@ import Webcam from "react-webcam";
 import Jimp from 'jimp'
 import { makeStyles } from '@material-ui/core/styles';
 import Grid from '@material-ui/core/Grid';
-import FormLabel from '@material-ui/core/FormLabel';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import RadioGroup from '@material-ui/core/RadioGroup';
-import {Typography} from '@material-ui/core';
+import { Typography } from '@material-ui/core';
 import Paper from '@material-ui/core/Paper';
 import Button from '@material-ui/core/Button';
+import CircularProgress from '@material-ui/core/CircularProgress'
 
 
 const useStyles = makeStyles((theme) => ({
   root: {
-justifyContent:'center',
-textAlign:'center'
+    justifyContent: 'center',
+    textAlign: 'center'
   },
   paper: {
     padding: theme.spacing(2),
@@ -26,295 +24,367 @@ textAlign:'center'
 }));
 
 
-function Face(){
+function Face() {
 
-    const classes = useStyles();
-    const webcamRef = React.useRef(null);
-    const vidHeight = 360;
-    const vidWidth = 480;
-    const[capImages,setCapImages]=React.useState([])
-    const[settings,setSettings] = React.useState({})
-    const[ogImages,setOgImages] = React.useState([])
-    const[inside,setInside] = React.useState(false)
-    const[close,setClose] = React.useState(false)
-    const[align,setAlign] = React.useState(false)
-    const[bright,setBright] = React.useState(false)
-    const[faceStat,setFaceStat] = React.useState("")
+  const classes = useStyles();
+  const webcamRef = React.useRef(null);
+  const vidHeight = 360;
+  const vidWidth = 480;
+  const [croppedImages, setCroppedImages] = React.useState([])
+  const [settings, setSettings] = React.useState({})
+  const [ogImages, setOgImages] = React.useState([])
+  const [inside, setInside] = React.useState(false)
+  const [close, setClose] = React.useState(false)
+  const [align, setAlign] = React.useState(false)
+  const [bright, setBright] = React.useState(false)
+  const [faceStat, setFaceStat] = React.useState("")
+  const [loading, setLoading] = React.useState(true)
+  const [faceLoading, setFaceLoading] = React.useState(false)
 
-useEffect(()=>{
-    let setting = require("./Settings/settings.json")
-    setSettings(setting)
-    //////////console.log(settings,"settings")
-    const c = document.getElementById("canvas1")
-    const ctx = c.getContext("2d")
-    ctx.strokeStyle = "#FF0000";
-    ctx.setLineDash([6]);
-    ctx.strokeRect(40, 30, 400, 300);
-    
+  useEffect(() => {
+    var setting = {}
+    const queryString = require('query-string');
+    const parsed = queryString.parse(window.location.search);
+    if (parsed.setting) {
+      setting = require("./Settings/" + parsed.setting)
+      //setting can be accessed from anywhere in the component
+      setSettings(setting)
+    }
+    else {
+      setting = require("./Settings/settings.json")
+      console.log(setting, "settings")
+    }
+
+
     Promise.all([
-        faceapi.loadFaceLandmarkModel('models'),
-        faceapi.loadTinyFaceDetectorModel('models'),
-        faceapi.loadFaceRecognitionModel('models'),
-        faceapi.loadSsdMobilenetv1Model('models')
-        
-      ])
-})
+      faceapi.loadFaceLandmarkModel('models'),
+      faceapi.loadTinyFaceDetectorModel('models'),
 
-function performChecks(e){
-    
-  const video = webcamRef;
-  //Creating a canvas to add overlay image
-  const canvas = document.getElementById("canvas")
-  const displaySize = { width: vidWidth, height: vidHeight };
-  faceapi.matchDimensions(canvas, displaySize);
-  
-  //Asynchronusly get detections from the video Stream
+    ]).then(() => {
+      setLoading(false)
+      const c = document.getElementById("canvas1")
+      const ctx = c.getContext("2d")
+      ctx.strokeStyle = "#FF0000";
+      ctx.setLineDash([6]);
+      ctx.strokeRect((vidWidth / 100) * 21, (vidHeight / 100) * 10, 0.75 * vidHeight, (vidHeight / 100) * 80);
+      // console.log("loaded")
+    })
+  },[])
+
+  function performChecks(e) {
+
+    const video = webcamRef;
+    //Creating a canvas to add overlay image
+    const canvas = document.getElementById("canvas")
+    const displaySize = { width: vidWidth, height: vidHeight };
+    faceapi.matchDimensions(canvas, displaySize);
+
+    //Asynchronusly get detections from the video Stream
     var interval = setInterval(async () => {
-      
+
       const detections = await faceapi
         .detectAllFaces(video.current.video, new faceapi.TinyFaceDetectorOptions()) //Face Detectors
         .withFaceLandmarks() // Get cordinates of landmarks
-  // Resize and Display the detections on the video frame using canvas
+      // Resize and Display the detections on the video frame using canvas
       const resizedDetections = faceapi.resizeResults(detections, displaySize);
       // setPrevFace(resizedDetections[0])
 
-      // //////////console.log(prevFace,"prevFace")
       canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-      faceapi.draw.drawDetections(canvas, resizedDetections);
-      faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
-      if(resizedDetections[0]){
-        var pTopLeft={x:resizedDetections[0].detection.box.topLeft.x,y:resizedDetections[0].detection.box.topLeft.y}
-        var pBottomRight={x:resizedDetections[0].detection.box.bottomRight.x,y:resizedDetections[0].detection.box.bottomRight.y}
-        var bb = {ix:120,iy:40,ax:520,ay:430}
+      if (resizedDetections[0] && resizedDetections[0].alignedRect.score > 0.7) {
+        var pTopLeft = { x: resizedDetections[0].alignedRect.box.topLeft.x, y: resizedDetections[0].alignedRect.box.topLeft.y }
+        var pBottomRight = { x: resizedDetections[0].alignedRect.box.bottomRight.x, y: resizedDetections[0].alignedRect.box.bottomRight.y }
+        var bb = { ix: (vidWidth / 100) * 21, iy: (vidHeight / 100) * 10, ax: (vidWidth / 100) * 77, ay: (vidHeight / 100) * 90 }
 
-
-        if((isInside(pTopLeft,bb) && isInside(pBottomRight,bb)) || !settings.insideBox) {
-          setInside(false)
-      const dist = faceapi.euclideanDistance([resizedDetections[0].landmarks.getRightEye()[0]._x,resizedDetections[0].landmarks.getRightEye()[0]._y], [resizedDetections[0].landmarks.getLeftEye()[0]._x,resizedDetections[0].landmarks.getLeftEye()[0]._y])
-      const slope = (resizedDetections[0].landmarks.getLeftEye()[0]._y-resizedDetections[0].landmarks.getRightEye()[0]._y)/(resizedDetections[0].landmarks.getLeftEye()[0]._x-resizedDetections[0].landmarks.getRightEye()[0]._x)
-     if((resizedDetections[0].detection.box.width>200 && resizedDetections[0].detection.box.height>200) || !settings.hw200){
-      setClose(false)
-     if(((dist>75 && dist<83) && (slope>-0.1 && slope<0.3)) || !settings.aligned){
-       Promise.all([
-        setAlign(false)
-       ])
-    .then(()=>{cropAndSave(e,resizedDetections[0].detection.box,interval,canvas)
-    })
-    }
-    else{
-      setAlign(true)
-    }
-    }
-    else{
-      setClose(true)
-    }
-    }
-    else{
-      setInside(true)
-    }
-  }
-}, 100)
-
-}
-
-const isInside=(p,bb)=>{
-  if( bb.ix <= p.x && p.x <= bb.ax && bb.iy <= p.y && p.y <= bb.ay ) {
-return true
-  }
-
-  else{
-    return false
-  }
-}
-
-const cropAndSave=(e,box,interval,canvas)=>{
-
-const images = capImages
-var og = ogImages
-var srcimg = webcamRef.current.getScreenshot();
-
-Jimp.read(srcimg)
-.then((img)=>{
-//////////console.log(img,"image")
-
-  getImageLightness(img.bitmap,function(brightness){
-    
-    ////////console.log(brightness,"bro")
-if(brightness>100 || !settings.brightness){
-  setBright(false)
-  setAlign(false)
-  setClose(false)
-  setInside(false)
-img.getBase64(Jimp.AUTO, async(err, src) => {
-og[e.target.id] = src
-setOgImages(og)
-})
-   img.crop(box.x, box.y, box.width, box.height)
-      img.getBase64(Jimp.AUTO, async(err, src) => {
-
-  e.target.src=src
-  clearInterval(interval)
-  canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-  images[e.target.id] = src;
-          setCapImages(images);
-          //////////console.log(images)
-          })
+        //checking if face is inside the box.
+        if ((isInside(pTopLeft, bb) && isInside(pBottomRight, bb)) || !settings.insideBox) {
+          faceapi.draw.drawDetections(canvas, resizedDetections);
+          faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
+          handleInside()
+          const dist = faceapi.euclideanDistance([resizedDetections[0].landmarks.getRightEye()[0]._x, resizedDetections[0].landmarks.getRightEye()[0]._y], [resizedDetections[0].landmarks.getLeftEye()[0]._x, resizedDetections[0].landmarks.getLeftEye()[0]._y])
+          const slope = (resizedDetections[0].landmarks.getLeftEye()[0]._y - resizedDetections[0].landmarks.getRightEye()[0]._y) / (resizedDetections[0].landmarks.getLeftEye()[0]._x - resizedDetections[0].landmarks.getRightEye()[0]._x)
+          //checking if height and width are greater than 200px
+          if ((resizedDetections[0].alignedRect.box.width > 200 && resizedDetections[0].alignedRect.box.height > 200) || !settings.hw200) {
+            handleClose(false)
+            //checking if face is properly aligned.
+            if (((dist > 75 && dist < 83) && (slope > -0.1 && slope < 0.3)) || !settings.aligned) {
+              Promise.all([
+                handleAlign(false)
+              ])
+                .then(() => {
+                  cropAndSave(e, resizedDetections[0].alignedRect.box, interval, canvas)
+                })
+            }
+            else {
+              handleAlign(true)
+            }
+          }
+          else {
+            handleClose(true)
+          }
         }
-        else{
-          setBright(true)
+        else {
+          handleInside(true)
+        }
+      }
+    }, 100)
+
+  }
+
+  const isInside = (p, bb) => {
+    if (bb.ix <= p.x && p.x <= bb.ax && bb.iy <= p.y && p.y <= bb.ay) {
+      return true
+    }
+
+    else {
+      return false
+    }
+  }
+
+  const cropAndSave = (e, box, interval, canvas) => {
+
+    const images = croppedImages
+    var og = ogImages
+    var srcimg = webcamRef.current.getScreenshot();
+
+    Jimp.read(srcimg)
+      .then((img) => {
+
+        getImageLightness(img.bitmap, function (brightness) {
+
+          //checking if brightness is not too high and not too low.
+          if (brightness > 100 && brightness < 150 || !settings.brightness) {
+            handleInside(false)
+            handleAlign(false)
+            handleClose(false)
+            handleBright(false)
+            img.getBase64(Jimp.AUTO, async (err, src) => {
+              og[e.target.id] = src
+              setOgImages(og)
+            })
+            img.crop(box.x, box.y, box.width, box.height)
+            img.getBase64(Jimp.AUTO, async (err, src) => {
+
+              e.target.src = src
+              e.target.style = "border:4px solid green"
+              clearInterval(interval)
+              canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+              images[e.target.id] = src;
+              setCroppedImages(images);
+            })
+          }
+          else {
+            handleBright(true)
+          }
+        })
+
+      })
+  }
+
+  const matchImages = async () => {
+    setFaceLoading(true)
+    Promise.all([
+      faceapi.loadFaceRecognitionModel('models'),
+      faceapi.loadSsdMobilenetv1Model('models')
+    ])
+      .then(async () => {
+        //detecting faces with descriptors
+        const img1 = await faceapi.detectAllFaces(base64ToEl(ogImages[0]), new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
+        const img2 = await faceapi.detectAllFaces(base64ToEl(ogImages[1]), new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
+        const img3 = await faceapi.detectAllFaces(base64ToEl(ogImages[2]), new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
+        const img4 = await faceapi.detectAllFaces(base64ToEl(ogImages[3]), new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
+        const displaySize = { width: vidWidth, height: vidHeight };
+        //resizing detections
+        var detections = {
+          detection1: faceapi.resizeResults(img1, displaySize),
+          detection2: faceapi.resizeResults(img2, displaySize),
+          detection3: faceapi.resizeResults(img3, displaySize),
+          detection4: faceapi.resizeResults(img4, displaySize),
+        }
+
+        //getting eucledian distance between detections. Less means more close
+        if (detections.detection1[0] && detections.detection2[0] && detections.detection3[0] && detections.detection4[0]) {
+          const distance1 = faceapi.euclideanDistance(detections.detection1[0].descriptor, detections.detection2[0].descriptor);
+          const distance2 = faceapi.euclideanDistance(detections.detection1[0].descriptor, detections.detection3[0].descriptor);
+          const distance3 = faceapi.euclideanDistance(detections.detection1[0].descriptor, detections.detection4[0].descriptor);
+          if (distance1 < 0.3 && distance2 < 0.3 && distance3 < 0.3) {
+            var finalArray = [
+              {
+                fullImg: ogImages[0],
+                croppedImg: croppedImages[0],
+                resizedDetections: detections.detection1,
+                timeStamp:Date.now()
+              },
+              {
+                fullImg: ogImages[0],
+                croppedImg: croppedImages[1],
+                resizedDetections: detections.detection2,
+                timeStamp:Date.now()
+              },
+              {
+                fullImg: ogImages[2],
+                croppedImg: croppedImages[2],
+                resizedDetections: detections.detection3,
+                timeStamp:Date.now()
+              },
+              {
+                fullImg: ogImages[3],
+                croppedImg: croppedImages[3],
+                resizedDetections: detections.detection4,
+                timeStamp:Date.now()
+              }
+            ]
+
+            console.log(finalArray, "array to send to server")
+            setFaceLoading(false)
+            setFaceStat("Same Faces")
+            setTimeout(() => {
+              setFaceStat("")
+            }, 3000);
+          }
+
+          else {
+            setFaceLoading(false)
+            setFaceStat("Not Same")
+            setTimeout(() => {
+              setFaceStat("")
+            }, 3000);
+          }
+        }
+        else {
+          for (var i = 1; i < 5; i++) {
+            if (detections["detection" + i].length == 0) {
+              setFaceStat(`Take Image ${i} Again`)
+            }
+          }
+          setFaceLoading(false)
+          setTimeout(() => {
+            setFaceStat("")
+          }, 3000);
+
         }
       })
- 
-})
-}
-
-const matchImages =async()=>{
-
-
-
-var imgEl1 = document.createElement("img")
-imgEl1.src = ogImages[1]
-  const img1 = await faceapi.detectAllFaces(base64ToEl(ogImages[0]),new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
-  const img2 = await faceapi.detectAllFaces(base64ToEl(ogImages[1]),new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
-  const img3 = await faceapi.detectAllFaces(base64ToEl(ogImages[2]),new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
-  const img4 = await faceapi.detectAllFaces(base64ToEl(ogImages[3]),new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
-  const displaySize = { width: vidWidth, height: vidHeight };
-  const detection1 = faceapi.resizeResults(img1, displaySize);
-  const detection2 = faceapi.resizeResults(img2, displaySize);
-  const detection3 = faceapi.resizeResults(img3, displaySize);
-  const detection4 = faceapi.resizeResults(img4, displaySize);
-  //////////console.log(detection1[0],detection2[0],detection3[0],detection4[0],"detections")
-  if(detection1[0] && detection2[0] && detection3[0] && detection4[0]){
-  const distance1 = faceapi.euclideanDistance(detection1[0].descriptor, detection2[0].descriptor);
-  const distance2 = faceapi.euclideanDistance(detection1[0].descriptor, detection3[0].descriptor);
-  const distance3 = faceapi.euclideanDistance(detection1[0].descriptor, detection4[0].descriptor);
-  if(distance1<0.3 && distance2<0.3 && distance3<0.3){
-    // //////////console.log(distance1,distance2,distance3,"same faces")
-    setFaceStat("Same Faces")
-    setTimeout(() => {
-      setFaceStat("")
-    }, 3000);
-    }
-  
-  else{
-    setFaceStat("Not Same")
-    setTimeout(() => {
-      setFaceStat("")
-    }, 3000);
-    //////////console.log(distance1,distance2,distance3,"not same")
   }
-}
-else{
-  //////////console.log("not detected")
-  setFaceStat("Take Image Again")
-  setTimeout(() => {
-    setFaceStat("")
-  }, 3000);
 
-}
+  const base64ToEl = (src) => {
+    var img = document.createElement("img")
+    img.src = src
+    return img;
+  }
 
 
-}
+  function getImageLightness(imageSrc, callback) {
+    var colorSum = 0;
 
-const base64ToEl=(src)=>{
-  var img = document.createElement("img")
-  img.src = src
-  return img;
-}
+    var data = imageSrc.data;
+    var r, g, b, avg;
 
+    for (var x = 0, len = data.length; x < len; x += 4) {
+      r = data[x];
+      g = data[x + 1];
+      b = data[x + 2];
 
-function getImageLightness(imageSrc,callback) {
+      avg = Math.floor((r + g + b) / 3);
+      colorSum += avg;
+    }
 
-var colorSum = 0;
+    var brightness = Math.floor(colorSum / (imageSrc.width * imageSrc.height));
+    callback(brightness);
 
-      var data = imageSrc.data;
-      //////////console.log(data)
-      var r,g,b,avg;
+  }
 
-      for(var x = 0, len = data.length; x < len; x+=4) {
-          r = data[x];
-          g = data[x+1];
-          b = data[x+2];
+  const handleInside = async (status) => {
+    setInside(status)
+  }
 
-          avg = Math.floor((r+g+b)/3);
-          colorSum += avg;
-      }
+  const handleAlign = async (status) => {
+    setAlign(status)
+  }
 
-      var brightness = Math.floor(colorSum / (imageSrc.width*imageSrc.height));
-      callback(brightness);
-  
-}
+  const handleClose = async (status) => {
+    setClose(status)
+  }
 
-
-
-
-
-
-    return(
-
-<div className={classes.root}>
-<Grid container spacing={3}
-  justify="center">
-    <Grid item xs={12}>
-      <Paper>
-      <Typography variant="h7">Face Registration/New</Typography>
-      </Paper>
-    </Grid>
-  <Grid item xs={4.5}>
-  
-      <div className="row">
-     <Webcam
-        audio={false}
-        height={vidHeight}
-        ref={webcamRef}
-        screenshotFormat="image/jpeg"
-        width={vidWidth}
-      />
-<canvas id="canvas" width={vidWidth} height={vidHeight}/>
-<canvas id="canvas1" width={vidWidth} height={vidHeight}/>
-</div>
+  const handleBright = async (status) => {
+    setBright(status)
+  }
 
 
-  </Grid>
-  <Grid item xs={3}>
-    <Paper className={classes.paper}>
-<h3>Instruction Panel</h3>
-<div style={{textAlign:"left"}}>
-<p style={{marginTop:"0px",marginBottom:"0px"}}>1. Wait for models to load.</p>
- <p style={{marginTop:"0px",marginBottom:"0px"}}>2. Put your face inside the square box.</p>
- <p style={{marginTop:"0px",marginBottom:"0px"}}>3. Put face close to the camera.</p>
- <p style={{marginTop:"0px",marginBottom:"0px"}}>4. Align face in front direction.</p>
- <p style={{marginTop:"0px",marginBottom:"0px"}}>5. Make sure it is not too bright or too dark.</p>
- <p style={{marginTop:"0px",marginBottom:"0px"}}>6. Press match images after taking all 4 images to check if all faces are same.</p>
- </div>
- <Button variant="contained" color="primary" onClick={matchImages}>
-  Match Images
+
+
+
+
+  return (
+    <div className={classes.root}>
+      <Grid container spacing={3}
+        justify="center">
+        <Grid item xs={12}>
+          <Paper>
+            <Typography variant="body1">Face Registration/New</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={4.5}>
+
+
+          {loading ? <CircularProgress />
+            :
+            <div className="row"><Webcam
+              audio={false}
+              height={vidHeight}
+              ref={webcamRef}
+              screenshotFormat="image/jpeg"
+              width={vidWidth}
+            />
+              <canvas id="canvas" width={vidWidth} height={vidHeight} />
+              <canvas id="canvas1" width={vidWidth} height={vidHeight} />
+            </div>}
+
+
+
+
+        </Grid>
+        <Grid item xs={3}>
+          <Paper className={classes.paper}>
+            <h3>Instruction Panel</h3>
+            <div style={{ textAlign: "left" }}>
+              {!loading && <p style={{ marginTop: "0px", marginBottom: "0px", color: "green", textAlign: "center" }}>Webcam Ready</p>}
+              <p style={{ marginTop: "0px", marginBottom: "0px" }}>1. Put your face inside the square box.</p>
+              <p style={{ marginTop: "0px", marginBottom: "0px" }}>2. Put face close to the camera.</p>
+              <p style={{ marginTop: "0px", marginBottom: "0px" }}>3. Align face in front direction.</p>
+              <p style={{ marginTop: "0px", marginBottom: "0px" }}>4. Make sure it is not too bright or too dark.</p>
+              <p style={{ marginTop: "0px", marginBottom: "0px" }}>5. Press match images after taking all 4 images to check if all faces are same.</p>
+            </div>
+
+            {faceLoading ? <CircularProgress /> :
+              <div>
+                <Button variant="contained" color="primary" onClick={matchImages}>
+                  Submit
 </Button>
-<p>{faceStat}</p>
-    </Paper>
+                <p>{faceStat}</p>
+              </div>}
+          </Paper>
 
-  </Grid>
-  <Grid item xs={5}>
-    <Paper>
-         <img src="4.png" width="100" id="0" onClick={(e)=>{performChecks(e)}}/>
-   <img src="4.png" width="100" id="1" onClick={(e)=>{performChecks(e)}}/>
-    <img src="4.png" width="100" id="2" onClick={(e)=>{performChecks(e)}}/>
-    <img src="4.png" width="100" id="3" onClick={(e)=>{performChecks(e)}}/>
-    </Paper>
-  </Grid>
-  <Grid xs={3}>
-    <Paper>
-      <h6>Errors:</h6>
-  {inside && <p>Not Inside</p>}
-{close && <p>Not close</p>}
-{align && <p>Not Aligned</p>}
-{bright && <p>Too bright or too dark</p>}
-</Paper>
-  </Grid>
-</Grid>
-</div>
+        </Grid>
+        <Grid item xs={5}>
+          <Paper>
+            <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="0" className="ml-1" onClick={(e) => { performChecks(e) }} />
+            <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="1" className="ml-1" onClick={(e) => { performChecks(e) }} />
+            <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="2" className="ml-1" onClick={(e) => { performChecks(e) }} />
+            <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="3" className="ml-1" onClick={(e) => { performChecks(e) }} />
+          </Paper>
+        </Grid>
+        <Grid item xs={3}>
+          <Paper>
+            <h6>Errors:</h6>
+            {inside && <p>Not Inside</p>}
+            {close && <p>Not close</p>}
+            {align && <p>Not Aligned</p>}
+            {bright && <p>Too bright or too dark</p>}
+          </Paper>
+        </Grid>
+      </Grid>
+    </div>
 
-    )
+  )
 }
 
 export default Face;

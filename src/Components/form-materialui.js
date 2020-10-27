@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Button from '@material-ui/core/Button';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import TextField from '@material-ui/core/TextField';
@@ -12,20 +12,8 @@ import Radio from '@material-ui/core/Radio';
 import RadioGroup from '@material-ui/core/RadioGroup';
 import FormControl from '@material-ui/core/FormControl';
 import FormLabel from '@material-ui/core/FormLabel';
-import {Link} from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
-// function Copyright() {
-//   return (
-//     <Typography variant="body2" color="textSecondary" align="center">
-//       {'Copyright © '}
-//       <Link color="inherit" href="https://material-ui.com/">
-//         Your Website
-//       </Link>{' '}
-//       {new Date().getFullYear()}
-//       {'.'}
-//     </Typography>
-//   );
-// }
 
 const useStyles = makeStyles((theme) => ({
   paper: {
@@ -47,8 +35,55 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-export default function SignUp() {
+export default function SignUp(props) {
   const classes = useStyles();
+  const [settings, setSettings] = React.useState({})
+  const [fields, setFields] = React.useState({})
+
+  
+
+
+  useEffect(() => {
+    var setting = {}
+    const queryString = require('query-string');
+    const parsed = queryString.parse(window.location.search);
+    if (parsed.setting) {
+      setting = require("./Settings/" + parsed.setting)
+      //setting can be accessed from anywhere in the component
+      setSettings(setting)
+    }
+    else {
+      setting = require("./Settings/settings.json")
+      console.log(setting, "settings")
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+      console.log("enumerateDevices() not supported.");
+      return;
+    }
+    else {
+      //Information about webcam
+      navigator.mediaDevices.enumerateDevices()
+        .then(function (devices) {
+          devices.forEach(function (device) {
+            console.log(device.kind + ": " + device.label +
+              " id = " + device.deviceId);
+          });
+        })
+        .catch(function (err) {
+          console.log(err.name + ": " + err.message);
+        });
+    }
+  },[])
+
+  const handleSubmit=()=>{
+console.log(fields,"input field data")
+  }
+
+  const handleChange = (event) => {
+    setFields({ ...fields, [event.target.name]: event.target.value });
+  };
+
+
 
   return (
     <Container component="main" maxWidth="xs">
@@ -61,6 +96,7 @@ export default function SignUp() {
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               <TextField
+                onChange={handleChange}
                 autoComplete="fname"
                 name="firstName"
                 variant="outlined"
@@ -73,6 +109,7 @@ export default function SignUp() {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
+                onChange={handleChange}
                 variant="outlined"
                 required
                 fullWidth
@@ -83,17 +120,18 @@ export default function SignUp() {
               />
             </Grid>
             <Grid item xs={12}>
-            <FormControl component="fieldset">
-  <FormLabel component="legend">Gender</FormLabel>
-  <RadioGroup aria-label="gender" name="gender1">
-    <FormControlLabel value="female" control={<Radio />} label="Female" />
-    <FormControlLabel value="male" control={<Radio />} label="Male" />
-    <FormControlLabel value="other" control={<Radio />} label="Other" />
-  </RadioGroup>
-</FormControl>
+              <FormControl component="fieldset">
+                <FormLabel component="legend">Gender</FormLabel>
+                <RadioGroup aria-label="gender" name="gender1">
+                  <FormControlLabel value="female" control={<Radio />} label="Female" />
+                  <FormControlLabel value="male" control={<Radio />} label="Male" />
+                  <FormControlLabel value="other" control={<Radio />} label="Other" />
+                </RadioGroup>
+              </FormControl>
             </Grid>
             <Grid item xs={12}>
               <TextField
+                onChange={handleChange}
                 variant="outlined"
                 required
                 fullWidth
@@ -105,84 +143,16 @@ export default function SignUp() {
             </Grid>
             <Grid item xs={12}>
               <TextField
-                variant="outlined"
-                required
+                onChange={handleChange}
+                name="date"
+                id="date"
+                label="Date"
+                type="date"
                 fullWidth
-                id="webcammake"
-                label="Webcam make"
-                name="webcammake"
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                variant="outlined"
-                required
-                fullWidth
-                id="model"
-                label="Model"
-                name="model"
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                variant="outlined"
-                required
-                fullWidth
-                id="resolution"
-                label="Resolution"
-                name="resolution"
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                variant="outlined"
-                required
-                fullWidth
-                id="appname"
-                label="App Name"
-                name="appname"
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                variant="outlined"
-                required
-                fullWidth
-                id="url"
-                label="Url"
-                name="url"
-              />
-            </Grid>
-            <Grid item xs={12}>
-            <TextField
-    id="date"
-    label="Date"
-    type="date"
-    fullWidth
-    defaultValue={()=>Date.now()}
-    InputLabelProps={{
-      shrink: true,
-    }}
-  />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                variant="outlined"
-                required
-                fullWidth
-                id="organization"
-                label="Organization"
-                name="organization"
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                variant="outlined"
-                required
-                fullWidth
-                id="projectname"
-                label="Project Name"
-                name="projectname"
+                defaultValue={() => Date.now()}
+                InputLabelProps={{
+                  shrink: true,
+                }}
               />
             </Grid>
           </Grid>
@@ -191,14 +161,14 @@ export default function SignUp() {
             variant="contained"
             color="primary"
             className={classes.submit}
+            onClick={handleSubmit}
           >
-          Submit
+            Submit
           </Button>
           </Link>
         </form>
       </div>
       <Box mt={5}>
-        {/* <Copyright /> */}
       </Box>
     </Container>
   );
