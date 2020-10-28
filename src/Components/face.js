@@ -67,6 +67,9 @@ function Face() {
       ctx.strokeStyle = "#FF0000";
       ctx.setLineDash([6]);
       ctx.strokeRect((vidWidth / 100) * 21, (vidHeight / 100) * 10, 0.75 * vidHeight, (vidHeight / 100) * 80);
+      ctx.font = "12px Arial";
+      ctx.fillText("Come closer", 10, 20);
+      ctx.fillText("Keep face straight and front looking", 10, 40);
       // console.log("loaded")
     })
   },[])
@@ -107,12 +110,13 @@ function Face() {
             handleClose(false)
             //checking if face is properly aligned.
             if (((dist > 75 && dist < 83) && (slope > -0.1 && slope < 0.3))) {
-              console.log(dist,slope,"dist and slope")
               Promise.all([
                 handleAlign(false)
               ])
                 .then(() => {
-                  cropAndSave(e, resizedDetections[0].alignedRect.box, interval, canvas)
+                 var al = resizedDetections[0].landmarks.align()
+                // console.log(resizedDetections[0])
+                  cropAndSave(e, al,interval, canvas)
                 })
             }
             else {
@@ -164,7 +168,7 @@ function Face() {
             })
             img.crop(box.x, box.y, box.width, box.height)
             img.getBase64(Jimp.AUTO, async (err, src) => {
-
+              
               e.target.src = src
               e.target.style = "border:4px solid green"
               clearInterval(interval)
@@ -323,6 +327,14 @@ function Face() {
             <Typography variant="body1">Face Registration/New</Typography>
           </Paper>
         </Grid>
+        <Grid id="icons-side" item xs={2}>
+          <Paper>
+            <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="0" className="mt-1" onClick={(e) => { performChecks(e) }} />
+            <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="1" className="mt-1" onClick={(e) => { performChecks(e) }} />
+            <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="2" className="mt-1" onClick={(e) => { performChecks(e) }} />
+            <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="3" className="mt-1" onClick={(e) => { performChecks(e) }} />
+          </Paper>
+        </Grid>
         <Grid item xs={4.5}>
 
 
@@ -365,7 +377,7 @@ function Face() {
           </Paper>
 
         </Grid>
-        <Grid item xs={5}>
+        <Grid id="icons-down" item xs={5}>
           <Paper>
             <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="0" className="ml-1" onClick={(e) => { performChecks(e) }} />
             <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="1" className="ml-1" onClick={(e) => { performChecks(e) }} />
@@ -375,7 +387,7 @@ function Face() {
         </Grid>
         <Grid item xs={3}>
           <Paper>
-            <h6>Errors:</h6>
+            {(inside || close || align || bright) && <h6>Errors:</h6>}
             {inside && <p>Not Inside</p>}
             {close && <p>Not close</p>}
             {align && <p>Not Aligned</p>}
