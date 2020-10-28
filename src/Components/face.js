@@ -127,7 +127,7 @@ function Face() {
           handleInside(true)
         }
       }
-    }, 1000)
+    }, 500)
 
   }
 
