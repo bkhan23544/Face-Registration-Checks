@@ -96,17 +96,18 @@ function Face() {
         var bb = { ix: (vidWidth / 100) * 21, iy: (vidHeight / 100) * 10, ax: (vidWidth / 100) * 77, ay: (vidHeight / 100) * 90 }
 
         //checking if face is inside the box.
-        if ((isInside(pTopLeft, bb) && isInside(pBottomRight, bb)) || !settings.insideBox) {
+        if ((isInside(pTopLeft, bb) && isInside(pBottomRight, bb))) {
           faceapi.draw.drawDetections(canvas, resizedDetections);
           faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
-          handleInside()
+          handleInside(false)
           const dist = faceapi.euclideanDistance([resizedDetections[0].landmarks.getRightEye()[0]._x, resizedDetections[0].landmarks.getRightEye()[0]._y], [resizedDetections[0].landmarks.getLeftEye()[0]._x, resizedDetections[0].landmarks.getLeftEye()[0]._y])
           const slope = (resizedDetections[0].landmarks.getLeftEye()[0]._y - resizedDetections[0].landmarks.getRightEye()[0]._y) / (resizedDetections[0].landmarks.getLeftEye()[0]._x - resizedDetections[0].landmarks.getRightEye()[0]._x)
           //checking if height and width are greater than 200px
-          if ((resizedDetections[0].alignedRect.box.width > 200 && resizedDetections[0].alignedRect.box.height > 200) || !settings.hw200) {
+          if ((resizedDetections[0].alignedRect.box.width > 200 && resizedDetections[0].alignedRect.box.height > 200)) {
             handleClose(false)
             //checking if face is properly aligned.
-            if (((dist > 75 && dist < 83) && (slope > -0.1 && slope < 0.3)) || !settings.aligned) {
+            if (((dist > 75 && dist < 83) && (slope > -0.1 && slope < 0.3))) {
+              console.log(dist,slope,"dist and slope")
               Promise.all([
                 handleAlign(false)
               ])
@@ -126,7 +127,7 @@ function Face() {
           handleInside(true)
         }
       }
-    }, 100)
+    }, 1000)
 
   }
 
@@ -152,7 +153,7 @@ function Face() {
         getImageLightness(img.bitmap, function (brightness) {
 
           //checking if brightness is not too high and not too low.
-          if (brightness > 100 && brightness < 150 || !settings.brightness) {
+          if (brightness > 100 && brightness < 150) {
             handleInside(false)
             handleAlign(false)
             handleClose(false)
