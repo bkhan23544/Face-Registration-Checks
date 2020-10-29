@@ -1,8 +1,5 @@
 {
-    "server_url":"Abc",
+    "server_url":"https://asia-south1-cityairapp.cloudfunctions.net/general_test",
     "server_method":"POST",
-    "api_key":"Abcd",
-    "app_name":"",
-    "organization":"",
-    "project":""
+    "api_key":"Abcd"
 }

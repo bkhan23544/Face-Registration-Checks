@@ -9,6 +9,7 @@ import { Typography } from '@material-ui/core';
 import Paper from '@material-ui/core/Paper';
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress'
+import writeJsonFile from 'write-json-file'
 
 
 const useStyles = makeStyles((theme) => ({
@@ -41,7 +42,21 @@ function Face() {
   const [loading, setLoading] = React.useState(true)
   const [faceLoading, setFaceLoading] = React.useState(false)
 
+
+  const handleSaveToPC = jsonData => {
+    const fileData = JSON.stringify(jsonData);
+    const blob = new Blob([fileData], {type: "text/plain"});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = 'sample.json';
+    link.href = url;
+    link.click();
+  }
+
+
   useEffect(() => {
+
+
     var setting = {}
     const queryString = require('query-string');
     const parsed = queryString.parse(window.location.search);
@@ -52,6 +67,7 @@ function Face() {
     }
     else {
       setting = require("./Settings/settings.json")
+      setSettings(setting)
       console.log(setting, "settings")
     }
 
@@ -239,7 +255,21 @@ function Face() {
               }
             ]
 
-            console.log(finalArray, "array to send to server")
+            var finalObj={
+              userData:JSON.parse(localStorage.getItem("userData")),
+              images:finalArray
+}
+
+
+const response = await fetch(settings.server_url, {
+  method: settings.server_method, 
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify(finalObj)
+});
+console.log(response.json(),"response"); 
+          
             setFaceLoading(false)
             setFaceStat("Same Faces")
             var canvas = document.getElementById("canvas1")

@@ -75,8 +75,10 @@ export default function SignUp(props) {
     }
   },[])
 
-  const handleSubmit=()=>{
-console.log(fields,"input field data")
+  const handleSubmit=async()=>{
+    localStorage.setItem('userData', JSON.stringify(fields))
+    
+
   }
 
   const handleChange = (event) => {
