@@ -242,9 +242,20 @@ function Face() {
             console.log(finalArray, "array to send to server")
             setFaceLoading(false)
             setFaceStat("Same Faces")
+            var canvas = document.getElementById("canvas1")
+            
+            var ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = "30px Arial";
+            ctx.fillStyle = "red";
+            ctx.textAlign = "center";
+            ctx.fillText("Thanks!", canvas.width/2, canvas.height/2);
+
             setTimeout(() => {
+              ctx.clearRect(0, 0, canvas.width, canvas.height);
               setFaceStat("")
             }, 3000);
+            
           }
 
           else {
@@ -361,10 +372,10 @@ function Face() {
             <div style={{ textAlign: "left" }}>
               {!loading && <p style={{ marginTop: "0px", marginBottom: "0px", color: "green", textAlign: "center" }}>Webcam Ready</p>}
               <p style={{ marginTop: "0px", marginBottom: "0px" }}>1. Put your face inside the square box.</p>
-              <p style={{ marginTop: "0px", marginBottom: "0px" }}>2. Put face close to the camera.</p>
+              <p style={{ marginTop: "0px", marginBottom: "0px" }}>2. Press camera icon to take picture.</p>
               <p style={{ marginTop: "0px", marginBottom: "0px" }}>3. Align face in front direction.</p>
               <p style={{ marginTop: "0px", marginBottom: "0px" }}>4. Make sure it is not too bright or too dark.</p>
-              <p style={{ marginTop: "0px", marginBottom: "0px" }}>5. Press match images after taking all 4 images to check if all faces are same.</p>
+              <p style={{ marginTop: "0px", marginBottom: "0px" }}>5. Press Submit after taking all 4 images to submit images.</p>
             </div>
 
             {faceLoading ? <CircularProgress /> :
@@ -376,14 +387,6 @@ function Face() {
               </div>}
           </Paper>
 
-        </Grid>
-        <Grid id="icons-down" item xs={5}>
-          <Paper>
-            <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="0" className="ml-1" onClick={(e) => { performChecks(e) }} />
-            <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="1" className="ml-1" onClick={(e) => { performChecks(e) }} />
-            <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="2" className="ml-1" onClick={(e) => { performChecks(e) }} />
-            <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="3" className="ml-1" onClick={(e) => { performChecks(e) }} />
-          </Paper>
         </Grid>
         <Grid item xs={3}>
           <Paper>

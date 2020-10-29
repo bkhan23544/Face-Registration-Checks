@@ -25,7 +25,7 @@ canvas{
 #images{
   border:1px solid green;
 }
-@media(min-width:850px){
+/* @media(min-width:850px){
 #icons-side{
   display: block !important
 }
@@ -41,6 +41,6 @@ canvas{
   #icons-down{
     display: block !important;
   }
-  }
+  } */
 
 /*Face Style*/
