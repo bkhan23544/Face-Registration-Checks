@@ -54,6 +54,7 @@ export default function SignUp(props) {
     }
     else {
       setting = require("./Settings/settings.json")
+      setSettings(setting)
       console.log(setting, "settings")
     }
     if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
@@ -77,7 +78,10 @@ export default function SignUp(props) {
 
   const handleSubmit=async()=>{
     localStorage.setItem('userData', JSON.stringify(fields))
-    
+    var finalObj={
+      images:{abc:"aaa"},
+      fields:fields
+    }
 
   }
 

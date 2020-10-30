@@ -14,9 +14,12 @@
     "maxEyeDist":83,
     "minSlope":-0.1,
     "maxSlope":0.3,
-    "minBright":90,
+    "minBright":80,
     "maxBright":150,
     "faceMatchDist":0.3,
     "organization":"",
-    "project":""
+    "project":"",
+    "matching_mode":"verification",
+    "client_matching":true,
+    "server_matching":false
 }

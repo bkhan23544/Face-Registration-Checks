@@ -1,14 +1,15 @@
 import React, { useEffect } from 'react'
-import '../App.css';
-import * as faceapi from 'face-api.js';
 import Webcam from "react-webcam";
-import Jimp from 'jimp'
-import { makeStyles } from '@material-ui/core/styles';
+import * as faceapi from 'face-api.js';
 import Grid from '@material-ui/core/Grid';
-import { Typography } from '@material-ui/core';
 import Paper from '@material-ui/core/Paper';
-import Button from '@material-ui/core/Button';
+import { Typography } from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
 import CircularProgress from '@material-ui/core/CircularProgress'
+import Jimp from 'jimp'
+import Button from '@material-ui/core/Button';
+
+
 
 
 const useStyles = makeStyles((theme) => ({
@@ -23,29 +24,23 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-
-function Face() {
-
+export default function FaceMatch() {
   const classes = useStyles();
   const webcamRef = React.useRef(null);
   const [settings, setSettings] = React.useState({})
-  const vidHeight = settings.vidHeight;
-  const vidWidth = settings.vidWidth;
-  const [croppedImages, setCroppedImages] = React.useState([])
-  const [ogImages, setOgImages] = React.useState([])
+  const [loading, setLoading] = React.useState(true)
+  const [croppedImage, setcroppedImage] = React.useState("")
+  const [ogImage, setogImage] = React.useState("")
   const [inside, setInside] = React.useState(false)
   const [close, setClose] = React.useState(false)
   const [align, setAlign] = React.useState(false)
   const [bright, setBright] = React.useState(false)
-  const [faceStat, setFaceStat] = React.useState("")
-  const [loading, setLoading] = React.useState(true)
   const [faceLoading, setFaceLoading] = React.useState(false)
-
-
+  const [faceStat, setFaceStat] = React.useState("")
+  const vidHeight = settings.vidHeight;
+  const vidWidth = settings.vidWidth;
 
   useEffect(() => {
-    // console.log(ogImages[0],"og")
-
     var setting = {}
     const queryString = require('query-string');
     const parsed = queryString.parse(window.location.search);
@@ -56,14 +51,12 @@ function Face() {
       loadModels(setting)
     }
     else {
-      setting = require("./Settings/settings.json")
+      setting = require("./Match-settings/settings.json")
       setSettings(setting)
       loadModels(setting)
       console.log(setting, "settings")
     }
-
   }, [])
-
 
   const loadModels = (setting) => {
     Promise.all([
@@ -78,9 +71,6 @@ function Face() {
       ctx.setLineDash([6]);
       console.log(setting.vidWidth, setting.vidHeight)
       ctx.strokeRect((setting.vidWidth / 100) * 21, (setting.vidHeight / 100) * 10, 0.75 * setting.vidHeight, (setting.vidHeight / 100) * 80);
-      ctx.font = "12px Arial";
-      ctx.fillText("Come closer", 10, 20);
-      ctx.fillText("Keep face straight and front looking", 10, 40);
       // console.log("loaded")
     })
   }
@@ -156,9 +146,6 @@ function Face() {
   }
 
   const cropAndSave = (e, box, interval, canvas) => {
-
-    const images = croppedImages
-    var og = ogImages
     var srcimg = webcamRef.current.getScreenshot();
 
     Jimp.read(srcimg)
@@ -173,9 +160,8 @@ function Face() {
             handleClose(false)
             handleBright(false)
             img.getBase64(Jimp.AUTO, async (err, src) => {
-              og[e.target.id] = src
-              setOgImages(og)
-              if (og[0] !== undefined && og[1] !== undefined && og[2] !== undefined && og[3] !== undefined) {
+              setogImage(src)
+              if (src !== undefined) {
                 document.getElementById("submit").style.display = "inline"
               }
             })
@@ -186,8 +172,7 @@ function Face() {
               e.target.style = "border:4px solid green"
               clearInterval(interval)
               canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-              images[e.target.id] = src;
-              setCroppedImages(images);
+              setcroppedImage(src);
             })
           }
           else {
@@ -196,130 +181,6 @@ function Face() {
         })
 
       })
-  }
-
-  const matchImages = async (e) => {
-    setFaceLoading(true)
-    Promise.all([
-      faceapi.loadFaceRecognitionModel('models'),
-      faceapi.loadSsdMobilenetv1Model('models')
-    ])
-      .then(async () => {
-        //detecting faces with descriptors
-        const img1 = await faceapi.detectAllFaces(base64ToEl(ogImages[0]), new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
-        const img2 = await faceapi.detectAllFaces(base64ToEl(ogImages[1]), new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
-        const img3 = await faceapi.detectAllFaces(base64ToEl(ogImages[2]), new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
-        const img4 = await faceapi.detectAllFaces(base64ToEl(ogImages[3]), new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
-        const displaySize = { width: vidWidth, height: vidHeight };
-        //resizing detections
-        var detections = {
-          detection1: faceapi.resizeResults(img1, displaySize),
-          detection2: faceapi.resizeResults(img2, displaySize),
-          detection3: faceapi.resizeResults(img3, displaySize),
-          detection4: faceapi.resizeResults(img4, displaySize),
-        }
-
-        //getting eucledian distance between detections. Less means more close
-        if (detections.detection1[0] && detections.detection2[0] && detections.detection3[0] && detections.detection4[0]) {
-          const distance1 = faceapi.euclideanDistance(detections.detection1[0].descriptor, detections.detection2[0].descriptor);
-          const distance2 = faceapi.euclideanDistance(detections.detection1[0].descriptor, detections.detection3[0].descriptor);
-          const distance3 = faceapi.euclideanDistance(detections.detection1[0].descriptor, detections.detection4[0].descriptor);
-          if (distance1 < settings.faceMatchDist && distance2 < settings.faceMatchDist && distance3 < settings.faceMatchDist) {
-            var finalArray = [
-              {
-                fullImg: ogImages[0],
-                croppedImg: croppedImages[0],
-                resizedDetections: detections.detection1,
-                timeStamp: Date.now()
-              },
-              {
-                fullImg: ogImages[0],
-                croppedImg: croppedImages[1],
-                resizedDetections: detections.detection2,
-                timeStamp: Date.now()
-              },
-              {
-                fullImg: ogImages[2],
-                croppedImg: croppedImages[2],
-                resizedDetections: detections.detection3,
-                timeStamp: Date.now()
-              },
-              {
-                fullImg: ogImages[3],
-                croppedImg: croppedImages[3],
-                resizedDetections: detections.detection4,
-                timeStamp: Date.now()
-              }
-            ]
-
-            var finalObj = {
-              userData: JSON.parse(localStorage.getItem("userData")),
-              images: finalArray,
-              organization: settings.organization,
-              project: settings.project,
-            }
-
-
-            const response = await fetch(settings.server_url, {
-              method: settings.server_method,
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(finalObj)
-            });
-            console.log(response.json(), "response");
-
-            setFaceLoading(false)
-            document.getElementById("submit").style.display="inline"  
-            setFaceStat("Same Faces")
-            var canvas = document.getElementById("canvas1")
-
-            var ctx = canvas.getContext("2d");
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.font = "30px Arial";
-            ctx.fillStyle = "red";
-            ctx.textAlign = "center";
-            ctx.fillText("Thanks!", canvas.width / 2, canvas.height / 2);
-
-            setTimeout(() => {
-              ctx.clearRect(0, 0, canvas.width, canvas.height);
-              setFaceStat("")
-            }, 3000);
-
-          }
-
-          else {
-            setFaceLoading(false)
-            document.getElementById("submit").style.display="inline"  
-            setFaceStat("Not Same")
-            setTimeout(() => {
-              setFaceStat("")
-            }, 3000);
-          }
-        }
-        else {
-          for (var i = 1; i < 5; i++) {
-            if (detections["detection" + i].length == 0) {
-              var imgEl = document.getElementById(i - 1)
-              imgEl.src = "https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png"
-              imgEl.style.border = "none"
-              setFaceStat(`Take Image ${i} Again`)
-            }
-          }
-          setFaceLoading(false)
-          document.getElementById("submit").style.display="inline"  
-          setTimeout(() => {
-            setFaceStat("")
-          }, 3000);
-
-        }
-      })
-  }
-
-  const base64ToEl = (src) => {
-    var img = document.createElement("img")
-    img.src = src
-    return img;
   }
 
 
@@ -359,6 +220,101 @@ function Face() {
     setBright(status)
   }
 
+  const onSubmit = async (e) => {
+    var sample = require("./sample.json")
+    var src = sample.images[0].fullImg
+    setFaceLoading(true)
+    if (settings.client_matching) {
+      Promise.all([
+        faceapi.loadFaceRecognitionModel('models'),
+        faceapi.loadSsdMobilenetv1Model('models')
+      ])
+        .then(async () => {
+          const img1 = await faceapi.detectAllFaces(base64ToEl(src), new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
+          const img2 = await faceapi.detectAllFaces(base64ToEl(ogImage), new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
+          const displaySize = { width: vidWidth, height: vidHeight };
+          var detections = {
+            detection1: faceapi.resizeResults(img1, displaySize),
+            detection2: faceapi.resizeResults(img2, displaySize),
+          }
+
+          if (detections.detection1[0] && detections.detection2[0]) {
+            const distance1 = faceapi.euclideanDistance(detections.detection1[0].descriptor, detections.detection2[0].descriptor);
+            if (distance1 < settings.faceMatchDist) {
+              setFaceLoading(false)
+              document.getElementById("submit").style.display = "inline"
+              setFaceStat("Same Faces")
+              setTimeout(() => {
+                setFaceStat("")
+              }, 3000);
+              var finalObj = {
+                fullImg: ogImage,
+                croppedImg: croppedImage,
+                organization: settings.organization,
+                project: settings.project,
+                matching_mode: settings.matching_mode,
+                client_matching: settings.client_matching,
+                server_matching: settings.server_matching
+              }
+              const response = await fetch(settings.server_url, {
+                method: settings.server_method,
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(finalObj)
+              });
+              console.log(response.json(), "response");
+            }
+            else {
+              setFaceLoading(false)
+              document.getElementById("submit").style.display = "inline"
+              setFaceStat("Not Same")
+              setTimeout(() => {
+                setFaceStat("")
+              }, 3000);
+            }
+          }
+
+          else {
+            setFaceStat(`Take Image Again`)
+            document.getElementById("submit").style.display = "inline"
+            setFaceLoading(false)
+            setTimeout(() => {
+              setFaceStat("")
+            }, 3000);
+
+          }
+
+
+
+
+
+        })
+
+    }
+    else {
+      setFaceLoading(false)
+      var finalObj = {
+        fullImg: ogImage,
+        croppedImg: croppedImage,
+      }
+      const response = await fetch(settings.server_url, {
+        method: settings.server_method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(finalObj)
+      });
+      console.log(response.json(), "response");
+
+    }
+  }
+
+  const base64ToEl = (src) => {
+    var img = document.createElement("img")
+    img.src = src
+    return img;
+  }
 
 
 
@@ -396,30 +352,18 @@ function Face() {
           </Grid>
           <Grid item xs={4}>
             <Paper className={classes.paper}>
-              <h3>Instruction Panel</h3>
-              <div style={{ textAlign: "left" }}>
-                {!loading && <p style={{ marginTop: "0px", marginBottom: "0px", color: "green", textAlign: "center" }}>Webcam Ready</p>}
-                <p style={{ marginTop: "0px", marginBottom: "0px" }}>1. Put your face inside the square box.</p>
-                <p style={{ marginTop: "0px", marginBottom: "0px" }}>2. Press camera icon to take picture.</p>
-                <p style={{ marginTop: "0px", marginBottom: "0px" }}>3. Align face in front direction.</p>
-                <p style={{ marginTop: "0px", marginBottom: "0px" }}>4. Make sure it is not too bright or too dark.</p>
-                <p style={{ marginTop: "0px", marginBottom: "0px" }}>5. Press Submit after taking all 4 images to submit images.</p>
-              </div>
+              <h5>Past Result Messages</h5>
+              {faceLoading ? <CircularProgress />
+                : <Button id="submit" variant="contained" color="primary" onClick={onSubmit} style={{ display: "none" }}>
+                  Submit
+</Button>}
+              <p>{faceStat}</p>
 
-              {faceLoading ? <CircularProgress /> :
-                <div>
-                  {/* {ogImages[0]!==undefined && ogImages[1]!==undefined && ogImages[2]!==undefined && ogImages[3]!==undefined &&  */}
-                  <Button id="submit" variant="contained" color="primary" onClick={matchImages} style={{ display: "none" }}>
-                    Submit
-</Button>
-                  <p>{faceStat}</p>
-                </div>}
             </Paper>
 
           </Grid>
-          <Grid item xs={4}>
+          <Grid id="icons-side" item xs={8}>
             <Paper style={{ backgroundColor: "red", color: "white" }}>
-
               {(inside || close || align || bright) && <h6>Errors:</h6>}
               {inside && <p>Not Inside</p>}
               {close && <p>Not close</p>}
@@ -427,20 +371,15 @@ function Face() {
               {bright && <p>Too bright or too dark</p>}
             </Paper>
           </Grid>
-          <Grid id="icons-side" item xs={6}>
+          <Grid item xs={2}>
             <Paper>
-              <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="0" className="ml-2 mt-2 mb-2" onClick={(e) => { performChecks(e) }} />
-              <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="1" className="ml-2 mt-2 mb-2" onClick={(e) => { performChecks(e) }} />
-              <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="2" className="ml-2 mt-2 mb-2" onClick={(e) => { performChecks(e) }} />
-              <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="3" className="ml-2 mt-2 mb-2" onClick={(e) => { performChecks(e) }} />
+              <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="0" className="ml-1" onClick={(e) => { performChecks(e) }} />
             </Paper>
           </Grid>
+
 
         </Grid>
       </Grid>
     </div>
-
   )
 }
-
-export default Face;
