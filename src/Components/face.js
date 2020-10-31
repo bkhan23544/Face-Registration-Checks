@@ -43,7 +43,8 @@ function Face() {
 
 
 
-  useEffect(() => {
+  useEffect(async() => {
+
     // console.log(ogImages[0],"og")
 
     var setting = {}
@@ -59,6 +60,7 @@ function Face() {
       setting = require("./Settings/settings.json")
       setSettings(setting)
       loadModels(setting)
+   
       console.log(setting, "settings")
     }
 

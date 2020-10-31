@@ -40,7 +40,9 @@ export default function FaceMatch() {
   const vidHeight = settings.vidHeight;
   const vidWidth = settings.vidWidth;
 
-  useEffect(() => {
+  useEffect(async () => {
+
+
     var setting = {}
     const queryString = require('query-string');
     const parsed = queryString.parse(window.location.search);
@@ -54,7 +56,6 @@ export default function FaceMatch() {
       setting = require("./Match-settings/settings.json")
       setSettings(setting)
       loadModels(setting)
-      console.log(setting, "settings")
     }
   }, [])
 
@@ -62,6 +63,8 @@ export default function FaceMatch() {
     Promise.all([
       faceapi.loadFaceLandmarkModel('models'),
       faceapi.loadTinyFaceDetectorModel('models'),
+      faceapi.loadFaceRecognitionModel('models'),
+      faceapi.loadSsdMobilenetv1Model('models')
 
     ]).then(() => {
       setLoading(false)
@@ -69,17 +72,17 @@ export default function FaceMatch() {
       var ctx = c.getContext("2d")
       ctx.strokeStyle = "#FF0000";
       ctx.setLineDash([6]);
-      console.log(setting.vidWidth, setting.vidHeight)
       ctx.strokeRect((setting.vidWidth / 100) * 21, (setting.vidHeight / 100) * 10, 0.75 * setting.vidHeight, (setting.vidHeight / 100) * 80);
+      performChecks(setting)
       // console.log("loaded")
     })
   }
 
-  function performChecks(e) {
+  function performChecks(setting) {
     const video = webcamRef;
     //Creating a canvas to add overlay image
     const canvas = document.getElementById("canvas")
-    const displaySize = { width: vidWidth, height: vidHeight };
+    const displaySize = { width: setting.vidWidth, height: setting.vidHeight };
     faceapi.matchDimensions(canvas, displaySize);
 
     //Asynchronusly get detections from the video Stream
@@ -93,30 +96,30 @@ export default function FaceMatch() {
       // setPrevFace(resizedDetections[0])
 
       canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-      if (resizedDetections[0] && resizedDetections[0].alignedRect.score > settings.minFaceScore) {
+      if (resizedDetections[0] && resizedDetections[0].alignedRect.score > setting.minFaceScore) {
         var pTopLeft = { x: resizedDetections[0].alignedRect.box.topLeft.x, y: resizedDetections[0].alignedRect.box.topLeft.y }
         var pBottomRight = { x: resizedDetections[0].alignedRect.box.bottomRight.x, y: resizedDetections[0].alignedRect.box.bottomRight.y }
-        var bb = { ix: (vidWidth / 100) * 21, iy: (vidHeight / 100) * 10, ax: (vidWidth / 100) * 77, ay: (vidHeight / 100) * 90 }
+        var bb = { ix: (setting.vidWidth / 100) * 21, iy: (setting.vidHeight / 100) * 10, ax: (setting.vidWidth / 100) * 77, ay: (setting.vidHeight / 100) * 90 }
 
         //checking if face is inside the box.
-        if ((isInside(pTopLeft, bb) && isInside(pBottomRight, bb)) || !settings.insideCheck) {
+        if ((isInside(pTopLeft, bb) && isInside(pBottomRight, bb)) || !setting.insideCheck) {
           faceapi.draw.drawDetections(canvas, resizedDetections);
           faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
           handleInside(false)
           const dist = faceapi.euclideanDistance([resizedDetections[0].landmarks.getRightEye()[0]._x, resizedDetections[0].landmarks.getRightEye()[0]._y], [resizedDetections[0].landmarks.getLeftEye()[0]._x, resizedDetections[0].landmarks.getLeftEye()[0]._y])
           const slope = (resizedDetections[0].landmarks.getLeftEye()[0]._y - resizedDetections[0].landmarks.getRightEye()[0]._y) / (resizedDetections[0].landmarks.getLeftEye()[0]._x - resizedDetections[0].landmarks.getRightEye()[0]._x)
           //checking if height and width are greater than 200px
-          if ((resizedDetections[0].alignedRect.box.width > settings.minRes && resizedDetections[0].alignedRect.box.height > settings.minRes) || !settings.closeCheck) {
+          if ((resizedDetections[0].alignedRect.box.width > setting.minRes && resizedDetections[0].alignedRect.box.height > setting.minRes) || !setting.closeCheck) {
             handleClose(false)
             //checking if face is properly aligned.
-            if (((dist > settings.minEyeDist && dist < settings.maxEyeDist) && (slope > settings.minSlope && slope < settings.maxSlope)) || !settings.alignCheck) {
+            if (((dist > setting.minEyeDist && dist < setting.maxEyeDist) && (slope > setting.minSlope && slope < setting.maxSlope)) || !setting.alignCheck) {
               Promise.all([
                 handleAlign(false)
               ])
                 .then(() => {
                   var al = resizedDetections[0].landmarks.align()
                   // console.log(resizedDetections[0])
-                  cropAndSave(e, al, interval, canvas)
+                  cropAndSave(setting, al, interval, canvas)
                 })
             }
             else {
@@ -131,7 +134,7 @@ export default function FaceMatch() {
           handleInside(true)
         }
       }
-    }, 500)
+    }, setting.duration)
 
   }
 
@@ -145,16 +148,16 @@ export default function FaceMatch() {
     }
   }
 
-  const cropAndSave = (e, box, interval, canvas) => {
+  const cropAndSave = (setting, box, interval, canvas) => {
     var srcimg = webcamRef.current.getScreenshot();
+    var fullImg = ""
 
     Jimp.read(srcimg)
       .then((img) => {
 
         getImageLightness(img.bitmap, function (brightness) {
-          console.log(brightness)
           //checking if brightness is not too high and not too low.
-          if ((brightness > settings.minBright && brightness < settings.maxBright) || !settings.brightnessCheck) {
+          if ((brightness > setting.minBright && brightness < setting.maxBright) || !setting.brightnessCheck) {
             handleInside(false)
             handleAlign(false)
             handleClose(false)
@@ -162,15 +165,16 @@ export default function FaceMatch() {
             img.getBase64(Jimp.AUTO, async (err, src) => {
               setogImage(src)
               if (src !== undefined) {
-                document.getElementById("submit").style.display = "inline"
+                // document.getElementById("submit").style.display = "inline"
+                fullImg = src
               }
             })
             img.crop(box.x, box.y, box.width, box.height)
             img.getBase64(Jimp.AUTO, async (err, src) => {
-
-              e.target.src = src
-              e.target.style = "border:4px solid green"
-              clearInterval(interval)
+              onSubmit(fullImg, setting, src)
+              // e.target.src = src
+              // e.target.style = "border:4px solid green"
+              // clearInterval(interval)
               canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
               setcroppedImage(src);
             })
@@ -220,76 +224,65 @@ export default function FaceMatch() {
     setBright(status)
   }
 
-  const onSubmit = async (e) => {
+  const onSubmit = async (ogImage, setting, croppedImage) => {
     var sample = require("./sample.json")
     var src = sample.images[0].fullImg
     setFaceLoading(true)
-    if (settings.client_matching) {
-      Promise.all([
-        faceapi.loadFaceRecognitionModel('models'),
-        faceapi.loadSsdMobilenetv1Model('models')
-      ])
-        .then(async () => {
-          const img1 = await faceapi.detectAllFaces(base64ToEl(src), new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
-          const img2 = await faceapi.detectAllFaces(base64ToEl(ogImage), new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
-          const displaySize = { width: vidWidth, height: vidHeight };
-          var detections = {
-            detection1: faceapi.resizeResults(img1, displaySize),
-            detection2: faceapi.resizeResults(img2, displaySize),
+    if (setting.client_matching) {
+      const img1 = await faceapi.detectAllFaces(base64ToEl(src), new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
+      const img2 = await faceapi.detectAllFaces(base64ToEl(ogImage), new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
+      const displaySize = { width: setting.vidWidth, height: setting.vidHeight };
+      var detections = {
+        detection1: faceapi.resizeResults(img1, displaySize),
+        detection2: faceapi.resizeResults(img2, displaySize),
+      }
+
+      if (detections.detection1[0] && detections.detection2[0]) {
+        const distance1 = faceapi.euclideanDistance(detections.detection1[0].descriptor, detections.detection2[0].descriptor);
+        if (distance1 < setting.faceMatchDist) {
+          setFaceLoading(false)
+          setFaceStat("Same Faces")
+          setTimeout(() => {
+            setFaceStat("")
+          }, 3000);
+          setFaceLoading(false)
+          var finalObj = {
+            fullImg: ogImage,
+            croppedImg: croppedImage,
+            organization: setting.organization,
+            project: setting.project,
+            matching_mode: setting.matching_mode,
+            client_matching: setting.client_matching,
+            server_matching: setting.server_matching
           }
+          const response = await fetch(setting.server_url, {
+            method: setting.server_method,
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(finalObj)
+          });
+          console.log(response.json(), "response");
 
-          if (detections.detection1[0] && detections.detection2[0]) {
-            const distance1 = faceapi.euclideanDistance(detections.detection1[0].descriptor, detections.detection2[0].descriptor);
-            if (distance1 < settings.faceMatchDist) {
-              setFaceLoading(false)
-              document.getElementById("submit").style.display = "inline"
-              setFaceStat("Same Faces")
-              setTimeout(() => {
-                setFaceStat("")
-              }, 3000);
-              var finalObj = {
-                fullImg: ogImage,
-                croppedImg: croppedImage,
-                organization: settings.organization,
-                project: settings.project,
-                matching_mode: settings.matching_mode,
-                client_matching: settings.client_matching,
-                server_matching: settings.server_matching
-              }
-              const response = await fetch(settings.server_url, {
-                method: settings.server_method,
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(finalObj)
-              });
-              console.log(response.json(), "response");
-            }
-            else {
-              setFaceLoading(false)
-              document.getElementById("submit").style.display = "inline"
-              setFaceStat("Not Same")
-              setTimeout(() => {
-                setFaceStat("")
-              }, 3000);
-            }
-          }
+        }
+        else {
+          setFaceLoading(false)
+          setFaceStat("Not Same")
+          setTimeout(() => {
+            setFaceStat("")
+          }, 3000);
+        }
+      }
 
-          else {
-            setFaceStat(`Take Image Again`)
-            document.getElementById("submit").style.display = "inline"
-            setFaceLoading(false)
-            setTimeout(() => {
-              setFaceStat("")
-            }, 3000);
+      else {
+        setFaceStat(`Take Image Again`)
+        setFaceLoading(false)
+        setTimeout(() => {
+          setFaceStat("")
+        }, 3000);
 
-          }
+      }
 
-
-
-
-
-        })
 
     }
     else {
@@ -297,13 +290,17 @@ export default function FaceMatch() {
       var finalObj = {
         fullImg: ogImage,
         croppedImg: croppedImage,
+        organization: setting.organization,
+        project: setting.project,
+        matching_mode: setting.matching_mode,
+        client_matching: setting.client_matching,
+        server_matching: setting.server_matching
       }
-      const response = await fetch(settings.server_url, {
-        method: settings.server_method,
+      const response = await fetch(setting.server_url, {
+        method: setting.server_method,
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(finalObj)
       });
       console.log(response.json(), "response");
 
@@ -329,7 +326,7 @@ export default function FaceMatch() {
             <Typography variant="body1">Face Registration/New</Typography>
           </Paper>
         </Grid>
-        <Grid container spacing={3} xs={9} justify="center">
+        <Grid container spacing={3} item xs={9} justify="center">
           <Grid item xs={4.5}>
 
 
@@ -353,11 +350,9 @@ export default function FaceMatch() {
           <Grid item xs={4}>
             <Paper className={classes.paper}>
               <h5>Past Result Messages</h5>
-              {faceLoading ? <CircularProgress />
-                : <Button id="submit" variant="contained" color="primary" onClick={onSubmit} style={{ display: "none" }}>
-                  Submit
-</Button>}
-              <p>{faceStat}</p>
+              <div id="facestat">
+                <p>{faceStat}</p>
+              </div>
 
             </Paper>
 
@@ -371,11 +366,11 @@ export default function FaceMatch() {
               {bright && <p>Too bright or too dark</p>}
             </Paper>
           </Grid>
-          <Grid item xs={2}>
+          {/* <Grid item xs={2}>
             <Paper>
               <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="0" className="ml-1" onClick={(e) => { performChecks(e) }} />
             </Paper>
-          </Grid>
+          </Grid> */}
 
 
         </Grid>
