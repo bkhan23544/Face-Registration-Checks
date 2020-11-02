@@ -33,10 +33,10 @@ function Face() {
   const vidWidth = settings.vidWidth;
   const [croppedImages, setCroppedImages] = React.useState([])
   const [ogImages, setOgImages] = React.useState([])
-  const [inside, setInside] = React.useState(false)
-  const [close, setClose] = React.useState(false)
-  const [align, setAlign] = React.useState(false)
-  const [bright, setBright] = React.useState(false)
+  const [inside, setInside] = React.useState("")
+  const [close, setClose] = React.useState("")
+  const [align, setAlign] = React.useState("")
+  const [bright, setBright] = React.useState("")
   const [faceStat, setFaceStat] = React.useState("")
   const [loading, setLoading] = React.useState(true)
   const [faceLoading, setFaceLoading] = React.useState(false)
@@ -183,12 +183,8 @@ function Face() {
             })
             img.crop(box.x, box.y, box.width, box.height)
             img.getBase64(Jimp.AUTO, async (err, src) => {
-
-              e.target.src = src
-              e.target.style = "border:4px solid green"
               clearInterval(interval)
-              canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-              images[e.target.id] = src;
+              handleCaptured(src,e,canvas,images)
               setCroppedImages(images);
             })
           }
@@ -273,30 +269,15 @@ function Face() {
 
             setFaceLoading(false)
             document.getElementById("submit").style.display="inline"  
-            setFaceStat("Same Faces")
-            var canvas = document.getElementById("canvas1")
-
-            var ctx = canvas.getContext("2d");
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.font = "30px Arial";
-            ctx.fillStyle = "red";
-            ctx.textAlign = "center";
-            ctx.fillText("Thanks!", canvas.width / 2, canvas.height / 2);
-
-            setTimeout(() => {
-              ctx.clearRect(0, 0, canvas.width, canvas.height);
-              setFaceStat("")
-            }, 3000);
+         
+           handleSameFace()
 
           }
 
           else {
             setFaceLoading(false)
             document.getElementById("submit").style.display="inline"  
-            setFaceStat("Not Same")
-            setTimeout(() => {
-              setFaceStat("")
-            }, 3000);
+            handleNotSameFace()
           }
         }
         else {
@@ -346,19 +327,69 @@ function Face() {
   }
 
   const handleInside = async (status) => {
-    setInside(status)
+    if(status){
+    setInside("Not Inside")
+    }
+    else{
+      setInside("")
+    }
   }
 
   const handleAlign = async (status) => {
-    setAlign(status)
+    if(status){
+      setAlign("Not Aligned")
+      }
+      else{
+        setAlign("")
+      }
   }
 
   const handleClose = async (status) => {
-    setClose(status)
+    if(status){
+      setClose("Not Close")
+      }
+      else{
+        setClose("")
+      }
   }
 
   const handleBright = async (status) => {
-    setBright(status)
+    if(status){
+      setBright("Too Bright Or Too Dark")
+      }
+      else{
+        setBright("")
+      }
+  }
+
+  const handleCaptured = (src,e,canvas,images) =>{
+    e.target.src = src
+    e.target.style = "border:4px solid green"
+    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    images[e.target.id] = src;
+  }
+
+  const handleSameFace=()=>{
+    
+    var canvas = document.getElementById("canvas1")
+    var ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = "30px Arial";
+    ctx.fillStyle = "red";
+    ctx.textAlign = "center";
+    ctx.fillText("Thanks!", canvas.width / 2, canvas.height / 2);
+    setFaceStat("Same Faces")
+    setTimeout(() => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      setFaceStat("")
+    }, 3000);;
+  }
+
+  const handleNotSameFace=()=>{
+    setFaceStat("Not Same")
+    setTimeout(() => {
+      setFaceStat("")
+    }, 3000);
   }
 
 
@@ -422,11 +453,11 @@ function Face() {
           <Grid item xs={4}>
             <Paper style={{ backgroundColor: "red", color: "white" }}>
 
-              {(inside || close || align || bright) && <h6>Errors:</h6>}
-              {inside && <p>Not Inside</p>}
-              {close && <p>Not close</p>}
-              {align && <p>Not Aligned</p>}
-              {bright && <p>Too bright or too dark</p>}
+              {(inside!=="" || close!=="" || align!=="" || bright!=="") && <h6>Errors:</h6>}
+            <p>{inside}</p>
+            <p>{close}</p>
+            <p>{align}</p>
+            <p>{bright}</p>
             </Paper>
           </Grid>
           <Grid id="icons-side" item xs={6}>

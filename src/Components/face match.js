@@ -31,10 +31,10 @@ export default function FaceMatch() {
   const [loading, setLoading] = React.useState(true)
   const [croppedImage, setcroppedImage] = React.useState("")
   const [ogImage, setogImage] = React.useState("")
-  const [inside, setInside] = React.useState(false)
-  const [close, setClose] = React.useState(false)
-  const [align, setAlign] = React.useState(false)
-  const [bright, setBright] = React.useState(false)
+  const [inside, setInside] = React.useState("")
+  const [close, setClose] = React.useState("")
+  const [align, setAlign] = React.useState("")
+  const [bright, setBright] = React.useState("")
   const [faceLoading, setFaceLoading] = React.useState(false)
   const [faceStat, setFaceStat] = React.useState("")
   const vidHeight = settings.vidHeight;
@@ -209,19 +209,53 @@ export default function FaceMatch() {
   }
 
   const handleInside = async (status) => {
-    setInside(status)
+    if(status){
+    setInside("Not Inside")
+    }
+    else{
+      setInside("")
+    }
   }
 
   const handleAlign = async (status) => {
-    setAlign(status)
+    if(status){
+      setAlign("Not Aligned")
+      }
+      else{
+        setAlign("")
+      }
   }
 
   const handleClose = async (status) => {
-    setClose(status)
+    if(status){
+      setClose("Not Close")
+      }
+      else{
+        setClose("")
+      }
   }
 
   const handleBright = async (status) => {
-    setBright(status)
+    if(status){
+      setBright("Too Bright Or Too Dark")
+      }
+      else{
+        setBright("")
+      }
+  }
+
+  const handleSameFace=()=>{
+    setFaceStat("Same Faces")
+    setTimeout(() => {
+      setFaceStat("")
+    }, 3000);
+  }
+
+  const handleNotSameFace=()=>{
+    setFaceStat("Not Same")
+    setTimeout(() => {
+      setFaceStat("")
+    }, 3000);
   }
 
   const onSubmit = async (ogImage, setting, croppedImage) => {
@@ -241,11 +275,7 @@ export default function FaceMatch() {
         const distance1 = faceapi.euclideanDistance(detections.detection1[0].descriptor, detections.detection2[0].descriptor);
         if (distance1 < setting.faceMatchDist) {
           setFaceLoading(false)
-          setFaceStat("Same Faces")
-          setTimeout(() => {
-            setFaceStat("")
-          }, 3000);
-          setFaceLoading(false)
+          handleSameFace()
           var finalObj = {
             fullImg: ogImage,
             croppedImg: croppedImage,
@@ -267,10 +297,7 @@ export default function FaceMatch() {
         }
         else {
           setFaceLoading(false)
-          setFaceStat("Not Same")
-          setTimeout(() => {
-            setFaceStat("")
-          }, 3000);
+     handleNotSameFace()
         }
       }
 
@@ -359,11 +386,11 @@ export default function FaceMatch() {
           </Grid>
           <Grid id="icons-side" item xs={8}>
             <Paper style={{ backgroundColor: "red", color: "white" }}>
-              {(inside || close || align || bright) && <h6>Errors:</h6>}
-              {inside && <p>Not Inside</p>}
-              {close && <p>Not close</p>}
-              {align && <p>Not Aligned</p>}
-              {bright && <p>Too bright or too dark</p>}
+            {(inside!=="" || close!=="" || align!=="" || bright!=="") && <h6>Errors:</h6>}
+            <p>{inside}</p>
+            <p>{close}</p>
+            <p>{align}</p>
+            <p>{bright}</p>
             </Paper>
           </Grid>
           {/* <Grid item xs={2}>
