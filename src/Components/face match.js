@@ -24,10 +24,32 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-export default function FaceMatch() {
+export default function FaceMatch(props) {
+
+
+
+  const loadSettings=()=>{
+    var setting = {}
+    const queryString = require('query-string');
+    const parsed = queryString.parse(window.location.search);
+    if (parsed.setting) {
+      setting = require("./Settings/" + parsed.setting)
+      //setting can be accessed from anywhere in the component
+      return setting
+    }
+    else {
+      setting = require("./Match-settings/settings.json")
+      return setting
+     
+    }
+  
+  }
+  
+
+
   const classes = useStyles();
   const webcamRef = React.useRef(null);
-  const [settings, setSettings] = React.useState({})
+  const [settings, setSettings] = React.useState(loadSettings())
   const [loading, setLoading] = React.useState(true)
   const [croppedImage, setcroppedImage] = React.useState("")
   const [ogImage, setogImage] = React.useState("")
@@ -37,27 +59,14 @@ export default function FaceMatch() {
   const [bright, setBright] = React.useState("")
   const [faceLoading, setFaceLoading] = React.useState(false)
   const [faceStat, setFaceStat] = React.useState("")
-  const vidHeight = settings.vidHeight;
-  const vidWidth = settings.vidWidth;
+
+
+
 
   useEffect(async () => {
-
-
-    var setting = {}
-    const queryString = require('query-string');
-    const parsed = queryString.parse(window.location.search);
-    if (parsed.setting) {
-      setting = require("./Settings/" + parsed.setting)
-      //setting can be accessed from anywhere in the component
-      setSettings(setting)
-      loadModels(setting)
-    }
-    else {
-      setting = require("./Match-settings/settings.json")
-      setSettings(setting)
-      loadModels(setting)
-    }
-  }, [])
+    props.setTitle("Face Matching")
+    loadModels(settings)
+}, [])
 
   const loadModels = (setting) => {
     Promise.all([
@@ -72,7 +81,7 @@ export default function FaceMatch() {
       var ctx = c.getContext("2d")
       ctx.strokeStyle = "#FF0000";
       ctx.setLineDash([6]);
-      ctx.strokeRect((setting.vidWidth / 100) * 21, (setting.vidHeight / 100) * 10, 0.75 * setting.vidHeight, (setting.vidHeight / 100) * 80);
+      ctx.strokeRect((setting.vidWidth / 100) * setting.boxPercentX, (setting.vidHeight / 100) * setting.boxPercentY, setting.boxWidth * setting.vidHeight, setting.vidHeight*setting.boxHeight );
       performChecks(setting)
       // console.log("loaded")
     })
@@ -277,13 +286,20 @@ export default function FaceMatch() {
           setFaceLoading(false)
           handleSameFace()
           var finalObj = {
-            fullImg: ogImage,
+            // fullImg: ogImage,
             croppedImg: croppedImage,
             organization: setting.organization,
             project: setting.project,
             matching_mode: setting.matching_mode,
             client_matching: setting.client_matching,
             server_matching: setting.server_matching
+          }
+
+          // console.log(finalObj,"finalobj")
+
+          const abc={
+            name:"car",
+            call:"var"
           }
           const response = await fetch(setting.server_url, {
             method: setting.server_method,
@@ -348,12 +364,8 @@ export default function FaceMatch() {
     <div className={classes.root}>
       <Grid container spacing={3}
         justify="center">
-        <Grid item xs={12}>
-          <Paper>
-            <Typography variant="body1">Face Registration/New</Typography>
-          </Paper>
-        </Grid>
-        <Grid container spacing={3} item xs={9} justify="center">
+
+        <Grid container spacing={3} item xs={12} justify="center">
           <Grid item xs={4.5}>
 
 
@@ -361,13 +373,13 @@ export default function FaceMatch() {
               :
               <div className="row" style={{ border: "7px solid red" }}><Webcam
                 audio={false}
-                height={vidHeight}
+                height={settings.vidHeight}
                 ref={webcamRef}
                 screenshotFormat="image/jpeg"
-                width={vidWidth}
+                width={settings.vidWidth}
               />
-                <canvas id="canvas" width={vidWidth} height={vidHeight} />
-                <canvas id="canvas1" width={vidWidth} height={vidHeight} />
+                <canvas id="canvas" width={settings.vidWidth} height={settings.vidHeight} />
+                <canvas id="canvas1" width={settings.vidWidth} height={settings.vidHeight} />
               </div>}
 
 

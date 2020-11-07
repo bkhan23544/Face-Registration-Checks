@@ -14,7 +14,8 @@ import CircularProgress from '@material-ui/core/CircularProgress'
 const useStyles = makeStyles((theme) => ({
   root: {
     justifyContent: 'center',
-    textAlign: 'center'
+    textAlign: 'center',
+    marginTop:'30px'
   },
   paper: {
     padding: theme.spacing(2),
@@ -24,7 +25,7 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 
-function Face() {
+function Face(props) {
 
   const classes = useStyles();
   const webcamRef = React.useRef(null);
@@ -45,7 +46,7 @@ function Face() {
 
   useEffect(async() => {
 
-    // console.log(ogImages[0],"og")
+  props.setTitle("Face Registration")
 
     var setting = {}
     const queryString = require('query-string');
@@ -79,7 +80,7 @@ function Face() {
       ctx.strokeStyle = "#FF0000";
       ctx.setLineDash([6]);
       console.log(setting.vidWidth, setting.vidHeight)
-      ctx.strokeRect((setting.vidWidth / 100) * 21, (setting.vidHeight / 100) * 10, 0.75 * setting.vidHeight, (setting.vidHeight / 100) * 80);
+      ctx.strokeRect((setting.vidWidth / 100) * setting.boxPercentX, (setting.vidHeight / 100) * setting.boxPercentY, setting.boxWidth * setting.vidHeight, setting.vidHeight*setting.boxHeight );
       ctx.font = "12px Arial";
       ctx.fillText("Come closer", 10, 20);
       ctx.fillText("Keep face straight and front looking", 10, 40);
@@ -128,7 +129,7 @@ function Face() {
                 .then(() => {
                   var al = resizedDetections[0].landmarks.align()
                   // console.log(resizedDetections[0])
-                  cropAndSave(e, al, interval, canvas)
+                  cropAndSave(e, al, interval, canvas,resizedDetections[0])
                 })
             }
             else {
@@ -157,7 +158,7 @@ function Face() {
     }
   }
 
-  const cropAndSave = (e, box, interval, canvas) => {
+  const cropAndSave = (e, box, interval, canvas,resizedDetections) => {
 
     const images = croppedImages
     var og = ogImages
@@ -181,7 +182,21 @@ function Face() {
                 document.getElementById("submit").style.display = "inline"
               }
             })
+   
+            if(settings.rotateAlign){
+            var righteye = resizedDetections.landmarks.getRightEye()[0]
+            var lefteye = resizedDetections.landmarks.getLeftEye()[0]
+            var angle = calculateAngle(righteye._x, righteye._y,lefteye._x, lefteye._y,30,0,60,0)
+            console.log(angle,"angle")
+            
             img.crop(box.x, box.y, box.width, box.height)
+            img.rotate(angle)
+          }
+          else{
+            img.crop(box.x, box.y, box.width, box.height)
+          }
+            
+            
             img.getBase64(Jimp.AUTO, async (err, src) => {
               clearInterval(interval)
               handleCaptured(src,e,canvas,images)
@@ -305,6 +320,32 @@ function Face() {
     return img;
   }
 
+  const calculateAngle=(A1x,A1y,A2x,A2y,B1x,B1y,B2x,B2y)=>{
+    var dAx = A2x - A1x;
+    var dAy = A2y - A1y;
+    var dBx = B2x - B1x;
+    var dBy = B2y - B1y;
+    console.log(A1x,A1y,A2x,A2y,B1x,B1y,B2x,B2y)
+    var angle = Math.atan2(dAx * dBy - dAy * dBx, dAx * dBx + dAy * dBy)
+    if(angle < 0) {
+    angle = angle * -1;
+    var degree_angle = angle * (180 / Math.PI);
+    console.log(degree_angle,"real angle")
+    return degree_angle+180
+  }
+  else{
+    var degree_angle = angle * (180 / Math.PI);
+    console.log(degree_angle,"role angle")
+    return (degree_angle+180)*-1
+  }
+  //   if(degree_angle>180){
+  //   return degree_angle
+  // }
+  // else{
+  //   return degree_angle+180
+  // }
+  }
+
 
   function getImageLightness(imageSrc, callback) {
     var colorSum = 0;
@@ -406,7 +447,7 @@ function Face() {
             <Typography variant="body1">Face Registration/New</Typography>
           </Paper>
         </Grid>
-        <Grid container spacing={3} xs={9} justify="center">
+        <Grid container spacing={3} xs={12} justify="center">
           <Grid item xs={4.5}>
 
 
@@ -460,7 +501,7 @@ function Face() {
             <p>{bright}</p>
             </Paper>
           </Grid>
-          <Grid id="icons-side" item xs={6}>
+          <Grid id="icons-side" item xs={5}>
             <Paper>
               <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="0" className="ml-2 mt-2 mb-2" onClick={(e) => { performChecks(e) }} />
               <img src="https://icons.iconarchive.com/icons/osullivanluke/orb-os-x/512/Image-Capture-icon.png" width="100" height="100" id="1" className="ml-2 mt-2 mb-2" onClick={(e) => { performChecks(e) }} />

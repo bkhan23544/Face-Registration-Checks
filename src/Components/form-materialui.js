@@ -12,9 +12,10 @@ import Radio from '@material-ui/core/Radio';
 import RadioGroup from '@material-ui/core/RadioGroup';
 import FormControl from '@material-ui/core/FormControl';
 import FormLabel from '@material-ui/core/FormLabel';
-import { Link } from 'react-router-dom'
+import { createBrowserHistory } from "history";
 
 
+const history = createBrowserHistory();
 const useStyles = makeStyles((theme) => ({
   paper: {
     marginTop: theme.spacing(8),
@@ -44,6 +45,8 @@ export default function SignUp(props) {
 
 
   useEffect(() => {
+    props.setTitle("Face Registration Form")
+
     var setting = {}
     const queryString = require('query-string');
     const parsed = queryString.parse(window.location.search);
@@ -77,11 +80,19 @@ export default function SignUp(props) {
   },[])
 
   const handleSubmit=async()=>{
+    console.log(fields,"fielsa")
+    if(fields.firstName && fields.lastName && fields.gender && fields.email && fields.date){
     localStorage.setItem('userData', JSON.stringify(fields))
     var finalObj={
       images:{abc:"aaa"},
       fields:fields
     }
+    history.push("/face")
+    history.go(0)
+  }
+  else{
+    alert("Please Fill All Fields")
+  }
 
   }
 
@@ -128,7 +139,7 @@ export default function SignUp(props) {
             <Grid item xs={12}>
               <FormControl component="fieldset">
                 <FormLabel component="legend">Gender</FormLabel>
-                <RadioGroup aria-label="gender" name="gender1">
+                <RadioGroup aria-label="gender" name="gender" onChange={handleChange}>
                   <FormControlLabel value="female" control={<Radio />} label="Female" />
                   <FormControlLabel value="male" control={<Radio />} label="Male" />
                   <FormControlLabel value="other" control={<Radio />} label="Other" />
@@ -162,7 +173,8 @@ export default function SignUp(props) {
               />
             </Grid>
           </Grid>
-          <Link to="/face"><Button
+          {/* <Link to="/face"> */}
+            <Button
             fullWidth
             variant="contained"
             color="primary"
@@ -171,7 +183,7 @@ export default function SignUp(props) {
           >
             Submit
           </Button>
-          </Link>
+          {/* </Link> */}
         </form>
       </div>
       <Box mt={5}>

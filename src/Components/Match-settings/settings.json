@@ -2,8 +2,8 @@
     "server_url":"https://asia-south1-cityairapp.cloudfunctions.net/general_test",
     "server_method":"POST",
     "api_key":"Abcd",
-    "vidHeight":360,
-    "vidWidth":480,
+    "vidHeight":480,
+    "vidWidth":640,
     "alignCheck":false,
     "insideCheck":true,
     "brightnessCheck":true,
@@ -18,9 +18,13 @@
     "maxBright":150,
     "faceMatchDist":0.4,
     "duration":1000,
-    "organization":"",
-    "project":"",
+    "organization":"abc",
+    "project":"abc",
     "matching_mode":"verification",
     "client_matching":true,
-    "server_matching":false
+    "server_matching":false,
+    "boxPercentX":21,
+    "boxPercentY":10,
+    "boxWidth":0.75,
+    "boxHeight":0.8
 }
