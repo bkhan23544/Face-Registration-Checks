@@ -306,7 +306,7 @@ export default function FaceMatch(props) {
             headers: {
               "Content-Type": "application/json"
             },
-            body: JSON.stringify(finalObj)
+            body: JSON.stringify(abc)
           });
           console.log(response.json(), "response");
 

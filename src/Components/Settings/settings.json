@@ -23,5 +23,6 @@
     "boxPercentY":10,
     "boxWidth":0.75,
     "boxHeight":0.8,
-    "rotateAlign":true
+    "rotateAlign":true,
+    "alignDifference":15
 }
