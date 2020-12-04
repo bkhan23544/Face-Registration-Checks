@@ -3,11 +3,9 @@ import Webcam from "react-webcam";
 import * as faceapi from 'face-api.js';
 import Grid from '@material-ui/core/Grid';
 import Paper from '@material-ui/core/Paper';
-import { Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import CircularProgress from '@material-ui/core/CircularProgress'
 import Jimp from 'jimp'
-import Button from '@material-ui/core/Button';
 
 
 
@@ -51,8 +49,6 @@ export default function FaceMatch(props) {
   const webcamRef = React.useRef(null);
   const [settings, setSettings] = React.useState(loadSettings())
   const [loading, setLoading] = React.useState(true)
-  const [croppedImage, setcroppedImage] = React.useState("")
-  const [ogImage, setogImage] = React.useState("")
   const [inside, setInside] = React.useState("")
   const [close, setClose] = React.useState("")
   const [align, setAlign] = React.useState("")
@@ -63,7 +59,7 @@ export default function FaceMatch(props) {
 
 
 
-  useEffect(async () => {
+  useEffect(() => {
     props.setTitle("Face Matching")
     loadModels(settings)
 }, [])
@@ -172,7 +168,6 @@ export default function FaceMatch(props) {
             handleClose(false)
             handleBright(false)
             img.getBase64(Jimp.AUTO, async (err, src) => {
-              setogImage(src)
               if (src !== undefined) {
                 // document.getElementById("submit").style.display = "inline"
                 fullImg = src
@@ -185,7 +180,6 @@ export default function FaceMatch(props) {
               // e.target.style = "border:4px solid green"
               // clearInterval(interval)
               canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-              setcroppedImage(src);
             })
           }
           else {
